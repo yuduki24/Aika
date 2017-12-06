@@ -6,6 +6,7 @@ SCR_RECT = Rect(0, 0, 768, 576)
 CELL_SIZE = 32
 WINDOW_ROW = SCR_RECT.height // CELL_SIZE
 WINDOW_COL = SCR_RECT.width // CELL_SIZE
+FIELD_COL, FIELD_ROW = 8, 15
 
 class Puyopuyo:
     def __init__(self):
@@ -55,13 +56,22 @@ class Puyopuyo:
                 pygame.draw.rect(screen, (150, 150, 150), Rect(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
 
 class Field(pygame.sprite.Sprite):
-    colm, row = 8, 15
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self, self.containers)
-        self.x = x
-        self.y = y
+        # 左上の座標
+        self.x, self.y = x, y
+
+        # field初期化.
+        self.field = [[0 for i in range(FIELD_COL)] for j in range(FIELD_ROW)]
+        for row in range(FIELD_ROW):
+            self.field[row][0] = -1
+            self.field[row][FIELD_COL-1] = -1
+            if row == 0 or row == FIELD_ROW-1:
+                for col in range(FIELD_COL):
+                    self.field[row][col] = -1
+
     def update(self):
-        pygame.draw.rect(self.screen, (50, 100, 255), Rect(self.x*CELL_SIZE, self.y*CELL_SIZE, self.colm*CELL_SIZE, self.row*CELL_SIZE))
+        pygame.draw.rect(self.screen, (50, 100, 255), Rect(self.x*CELL_SIZE, self.y*CELL_SIZE, FIELD_COL*CELL_SIZE, FIELD_ROW*CELL_SIZE))
 
 if __name__ == "__main__":
     Puyopuyo()
