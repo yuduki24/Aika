@@ -20,6 +20,8 @@ class Puyopuyo:
             clock.tick(60)
             self.draw(screen)
             self.update()
+            
+            self.draw_grid(screen) #デバッグ.
             pygame.display.update()
             self.key_handler()
 
@@ -38,8 +40,7 @@ class Puyopuyo:
     def draw(self, screen):
         """描画"""
         screen.fill((50, 50, 50))
-        self.draw_grid(screen)
-
+        
     def key_handler(self):
         """キーハンドラー"""
         for event in pygame.event.get():
