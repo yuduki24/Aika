@@ -81,6 +81,8 @@ class Field(pygame.sprite.Sprite):
         """ぷよ出現位置を返す"""
         # xはfieldの中心、yは上から3番目の位置.
         return (self.x + FIELD_COL // 2 - 1), (self.y + 2)
+    def getElement(self, x, y):
+        return self.field[y-self.y][x-self.x]
 
 class PuyoOperator():
     def __init__(self, field):
@@ -103,13 +105,19 @@ class PuyoOperator():
                     self.move(LEFT)
     def move(self, direction):
         if direction == RIGHT:
-            # TODO 移動可能か判定する.
-            self.sun.addPosition(1, 0)
-            self.earth.addPosition(1, 0)
+            if self.isMoveable(self.x+1, self.y):
+                self.x += 1
+                self.sun.addPosition(1, 0)
+                self.earth.addPosition(1, 0)
         elif direction == LEFT:
-            # TODO 移動可能か判定する.
-            self.sun.addPosition(-1, 0)
-            self.earth.addPosition(-1, 0)
+            if self.isMoveable(self.x-1, self.y):
+                self.x -= 1
+                self.sun.addPosition(-1, 0)
+                self.earth.addPosition(-1, 0)
+    def isMoveable(self, x, y):
+        if self.field.getElement(x, y) == 0:
+            return True
+        return False
 
 class Puyo(pygame.sprite.Sprite):
     def __init__(self, x, y, color, state):
