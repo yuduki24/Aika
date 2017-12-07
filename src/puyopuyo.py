@@ -9,15 +9,14 @@ WINDOW_ROW = SCR_RECT.height // CELL_SIZE
 WINDOW_COL = SCR_RECT.width // CELL_SIZE
 FIELD_COL, FIELD_ROW = 8, 16
 SUN, EARTH, FIX, OJAMA = 0, 1, 2, 3
+RIGHT, LEFT = 0, 1
 
 class Puyopuyo:
     def __init__(self):
         pygame.init()
         screen = pygame.display.set_mode(SCR_RECT.size)
         pygame.display.set_caption(u"Puyopuyo")
-
         self.initialize(screen)
-
         clock = pygame.time.Clock()
         while True:
             clock.tick(60)
@@ -40,23 +39,20 @@ class Puyopuyo:
         self.field = Field(1, 1)
         self.puyoOpelator = PuyoOperator(self.field)
         self.puyoOpelator.makePuyo()
-
     def update(self):
         """ゲーム状態の更新"""
+        self.puyoOpelator.update()
         self.all.update()
-
     def draw(self, screen):
         """描画"""
         screen.fill((50, 50, 50))
         self.all.draw(screen)
-        
     def key_handler(self):
         """キーハンドラー"""
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-
     def draw_grid(self, screen):
         """グリッドの描画(主にデバッグ用)"""
         for y in range(WINDOW_ROW):
@@ -66,13 +62,11 @@ class Puyopuyo:
 class Field(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self, self.containers)
-        # 左上の座標
-        self.x, self.y = x, y
-
         self.rect = self.image.get_rect()
         self.rect.left = x * CELL_SIZE
         self.rect.top = y * CELL_SIZE
-
+        # 左上の座標
+        self.x, self.y = x, y
         # field初期化.
         self.field = [[0 for i in range(FIELD_COL)] for j in range(FIELD_ROW)]
         for row in range(FIELD_ROW):
@@ -92,14 +86,31 @@ class PuyoOperator():
     def __init__(self, field):
         self.field = field
         self.x, self.y = self.field.getApparitionPosition()
-
     def makePuyo(self):
         """ぷよを生成"""
         RED = 0
         # 回転ぷよは軸ぷよの上側に生成.
         self.sun = Puyo(self.x, self.y, RED, SUN)
         self.earth = Puyo(self.x, self.y-1, RED, EARTH)
-        
+    def update(self):
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:  # キーを押したとき
+                if event.key == K_RIGHT:
+                    print("right")
+                    self.move(RIGHT)
+                elif event.key == K_LEFT:
+                    print("left")
+                    self.move(LEFT)
+    def move(self, direction):
+        if direction == RIGHT:
+            # TODO 移動可能か判定する.
+            self.sun.addPosition(1, 0)
+            self.earth.addPosition(1, 0)
+        elif direction == LEFT:
+            # TODO 移動可能か判定する.
+            self.sun.addPosition(-1, 0)
+            self.earth.addPosition(-1, 0)
+
 class Puyo(pygame.sprite.Sprite):
     def __init__(self, x, y, color, state):
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -110,6 +121,9 @@ class Puyo(pygame.sprite.Sprite):
         self.rect.top = y * CELL_SIZE
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+    def addPosition(self, x, y):
+        self.rect.left += x * CELL_SIZE
+        self.rect.top += y * CELL_SIZE
 
 if __name__ == "__main__":
     Puyopuyo()
