@@ -78,6 +78,40 @@ class Field(pygame.sprite.Sprite):
                     self.field[row][col] = -1
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+    def update(self):
+        self.allFall()
+        self.updatePuyoPosition()
+    def updatePuyoPosition(self):
+        """"field上で移動したぷよをその位置に描画する"""
+        for i in range(FIELD_COL):
+            for j in range(FIELD_ROW):
+                #壁でも空でもない場合(=ぷよ).
+                if not(self.field[j][i] == 0 or self.field[j][i] == -1):
+                     self.field[j][i].setPosition(i+self.x, j+self.y)
+    def allFall(self):
+        """fieldにある全てのぷよを落とす"""
+        #上の隠れている2段に置かれたぷよは消滅.
+        # TODO デバッグ用で有効にすると.出現位置の回転ぷよが消えてしまう.
+        # for i in range(FIELD_COL):
+        #     for j in range(2):
+        #         if not(self.field[j][i] == 0 or self.field[j][i] == -1):
+        #             self.field[j][i].kill()
+        #             self.field[j][i] = 0
+        #ぷよを下に落とす.
+        for i in range(FIELD_COL):
+            for j in range(FIELD_ROW):
+                #壁でも空でもない場合(=ぷよ).
+                if not(self.field[FIELD_ROW-j-1][FIELD_COL-i-1] == 0 or self.field[FIELD_ROW-j-1][FIELD_COL-i-1] == -1):
+                    self.fall(FIELD_ROW-j-1, FIELD_COL-i-1)
+    def fall(self, y, x):
+        """(x, y)にあるぷよを一番下に落とす"""
+        n = 0
+        while self.field[y+n+1][x] == 0:
+            n += 1
+        if n == 0:
+            return
+        self.field[y+n][x] = self.field[y][x]
+        self.field[y][x] = 0
     def getApparitionPosition(self):
         """ぷよ出現位置を返す"""
         # xはfieldの中心、yは上から3番目の位置.
@@ -105,14 +139,13 @@ class PuyoOperator():
         for event in pygame.event.get():
             if event.type == KEYDOWN:  # キーを押したとき
                 if event.key == K_RIGHT:
-                    print("right")
                     self.move(RIGHT)
                 elif event.key == K_LEFT:
-                    print("left")
                     self.move(LEFT)
                 elif event.key == K_DOWN:
-                    print("down")
                     self.move(DOWN)
+                elif event.key == K_SPACE:
+                    self.fixPuyo()
         # if isMoveable(self.x, self.y+1):
         #     TODO 自由落下?
         # else:
@@ -159,6 +192,9 @@ class Puyo(pygame.sprite.Sprite):
     def addPosition(self, x, y):
         self.rect.left += x * CELL_SIZE
         self.rect.top += y * CELL_SIZE
+    def setPosition(self, x, y):
+        self.rect.left = x * CELL_SIZE
+        self.rect.top = y * CELL_SIZE
     def getPosition(self):
         return (self.rect.left // CELL_SIZE), (self.rect.top // CELL_SIZE)
     def setState(self, state):
