@@ -9,7 +9,7 @@ WINDOW_ROW = SCR_RECT.height // CELL_SIZE
 WINDOW_COL = SCR_RECT.width // CELL_SIZE
 FIELD_COL, FIELD_ROW = 8, 16
 SUN, EARTH, FIX, OJAMA = 0, 1, 2, 3
-RIGHT, LEFT = 0, 1
+RIGHT, LEFT, DOWN = 0, 1, 2
 
 class Puyopuyo:
     def __init__(self):
@@ -83,11 +83,16 @@ class Field(pygame.sprite.Sprite):
         return (self.x + FIELD_COL // 2 - 1), (self.y + 2)
     def getElement(self, x, y):
         return self.field[y-self.y][x-self.x]
-
+    def addPuyo(self, puyo):
+        x, y = puyo.getPosition()
+        self.field[y-self.y][x-self.x] = puyo
+        puyo.setState(FIX)
 class PuyoOperator():
+    FIX_TIME = 10
     def __init__(self, field):
         self.field = field
         self.x, self.y = self.field.getApparitionPosition()
+        self.fix_time = 0
     def makePuyo(self):
         """ぷよを生成"""
         RED = 0
@@ -103,6 +108,15 @@ class PuyoOperator():
                 elif event.key == K_LEFT:
                     print("left")
                     self.move(LEFT)
+                elif event.key == K_DOWN:
+                    print("down")
+                    self.move(DOWN)
+        # if isMoveable(self.x, self.y+1):
+        #     TODO 自由落下?
+        # else:
+        #     self.fix_time += 1
+        if self.fix_time > self.FIX_TIME:
+            self.fixPuyo()
     def move(self, direction):
         if direction == RIGHT:
             if self.isMoveable(self.x+1, self.y):
@@ -114,11 +128,20 @@ class PuyoOperator():
                 self.x -= 1
                 self.sun.addPosition(-1, 0)
                 self.earth.addPosition(-1, 0)
+        elif direction == DOWN:
+            if self.isMoveable(self.x, self.y+1):
+                self.y += 1
+                self.sun.addPosition(0, 1)
+                self.earth.addPosition(0, 1)
+            else:
+                self.fix_time += self.FIX_TIME
     def isMoveable(self, x, y):
         if self.field.getElement(x, y) == 0:
             return True
         return False
-
+    def fixPuyo(self):
+        self.field.addPuyo(self.sun)
+        self.field.addPuyo(self.earth)
 class Puyo(pygame.sprite.Sprite):
     def __init__(self, x, y, color, state):
         pygame.sprite.Sprite.__init__(self, self.containers)
@@ -132,6 +155,9 @@ class Puyo(pygame.sprite.Sprite):
     def addPosition(self, x, y):
         self.rect.left += x * CELL_SIZE
         self.rect.top += y * CELL_SIZE
-
+    def getPosition(self):
+        return (self.rect.left // CELL_SIZE), (self.rect.top // CELL_SIZE)
+    def setState(self, state):
+        self.state = state
 if __name__ == "__main__":
     Puyopuyo()
