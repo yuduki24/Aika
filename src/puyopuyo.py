@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 from loader import load_image, split_image
 import sys
+import random
 
 SCR_RECT = Rect(0, 0, 768, 576)
 CELL_SIZE = 32
@@ -95,10 +96,11 @@ class PuyoOperator():
         self.fix_time = 0
     def makePuyo(self):
         """ぷよを生成"""
-        RED = 0
         # 回転ぷよは軸ぷよの上側に生成.
-        self.sun = Puyo(self.x, self.y, RED, SUN)
-        self.earth = Puyo(self.x, self.y-1, RED, EARTH)
+        self.x, self.y = self.field.getApparitionPosition()
+        self.fix_time = 0
+        self.sun = Puyo(self.x, self.y, random.randint(0,4), SUN)
+        self.earth = Puyo(self.x, self.y-1, random.randint(0,4), EARTH)
     def update(self):
         for event in pygame.event.get():
             if event.type == KEYDOWN:  # キーを押したとき
@@ -142,6 +144,8 @@ class PuyoOperator():
     def fixPuyo(self):
         self.field.addPuyo(self.sun)
         self.field.addPuyo(self.earth)
+        # TODO 本来なら違うが、今は位置が確定したら次のぷよを作る.
+        self.makePuyo()
 class Puyo(pygame.sprite.Sprite):
     def __init__(self, x, y, color, state):
         pygame.sprite.Sprite.__init__(self, self.containers)
