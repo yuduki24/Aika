@@ -10,7 +10,7 @@ WINDOW_ROW = SCR_RECT.height // CELL_SIZE
 WINDOW_COL = SCR_RECT.width // CELL_SIZE
 FIELD_COL, FIELD_ROW = 8, 16
 SUN, EARTH, FIX, OJAMA = 0, 1, 2, 3
-RIGHT, LEFT, DOWN = 0, 1, 2
+UPPER, RIGHT, DOWN, LEFT = 0, 1, 2, 3
 
 class Puyopuyo:
     def __init__(self):
@@ -126,13 +126,12 @@ class PuyoOperator():
     FIX_TIME = 10
     def __init__(self, field):
         self.field = field
-        self.x, self.y = self.field.getApparitionPosition()
-        self.fix_time = 0
     def makePuyo(self):
         """ぷよを生成"""
         # 回転ぷよは軸ぷよの上側に生成.
         self.x, self.y = self.field.getApparitionPosition()
         self.fix_time = 0
+        self.rotation = UPPER
         self.sun = Puyo(self.x, self.y, random.randint(0,4), SUN)
         self.earth = Puyo(self.x, self.y-1, random.randint(0,4), EARTH)
     def update(self):
@@ -146,6 +145,10 @@ class PuyoOperator():
                     self.move(DOWN)
                 elif event.key == K_SPACE:
                     self.fixPuyo()
+                elif event.key == K_c:
+                    self.spin(RIGHT)
+                elif event.key == K_x:
+                    self.spin(LEFT)
         # if isMoveable(self.x, self.y+1):
         #     TODO 自由落下?
         # else:
@@ -170,6 +173,24 @@ class PuyoOperator():
                 self.earth.addPosition(0, 1)
             else:
                 self.fix_time += self.FIX_TIME
+    def spin(self, direction):
+        moments = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+        next_rotation = self.rotation
+        if direction == RIGHT:
+            if self.rotation == 3:
+                next_rotation = 0
+            else:
+                next_rotation = self.rotation + 1
+        elif direction == LEFT:
+            if self.rotation == 0:
+                next_rotation = 3
+            else:
+                next_rotation = self.rotation - 1
+        else:
+            return
+        if self.isMoveable(self.x+moments[next_rotation][0], self.y+moments[next_rotation][1]):
+            self.earth.setPosition(self.x+moments[next_rotation][0], self.y+moments[next_rotation][1])
+            self.rotation = next_rotation
     def isMoveable(self, x, y):
         if self.field.getElement(x, y) == 0:
             return True
