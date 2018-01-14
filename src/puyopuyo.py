@@ -11,6 +11,8 @@ WINDOW_COL = SCR_RECT.width // CELL_SIZE
 FIELD_COL, FIELD_ROW = 8, 16
 SUN, EARTH, FIX, OJAMA = 0, 1, 2, 3
 UPPER, RIGHT, DOWN, LEFT = 0, 1, 2, 3
+DELETE_LINK_COUNT = 4
+MOMENTS = [[0, -1], [1, 0], [0, 1], [-1, 0]]
 
 class Puyopuyo:
     def __init__(self):
@@ -78,9 +80,6 @@ class Field(pygame.sprite.Sprite):
                     self.field[row][col] = -1
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-    def update(self):
-        self.allFall()
-        self.updatePuyoPosition()
     def updatePuyoPosition(self):
         """"field上で移動したぷよをその位置に描画する"""
         for i in range(FIELD_COL):
@@ -103,6 +102,7 @@ class Field(pygame.sprite.Sprite):
                 #壁でも空でもない場合(=ぷよ).
                 if not(self.field[FIELD_ROW-j-1][FIELD_COL-i-1] == 0 or self.field[FIELD_ROW-j-1][FIELD_COL-i-1] == -1):
                     self.fall(FIELD_ROW-j-1, FIELD_COL-i-1)
+        self.updatePuyoPosition()
     def fall(self, y, x):
         """(x, y)にあるぷよを一番下に落とす"""
         n = 0
@@ -122,6 +122,56 @@ class Field(pygame.sprite.Sprite):
         x, y = puyo.getPosition()
         self.field[y-self.y][x-self.x] = puyo
         puyo.setState(FIX)
+    def startChain(self):
+        """連鎖を開始する"""
+        self.allFall()
+        while self.deletePuyoAll(DELETE_LINK_COUNT):
+            self.allFall()
+    def deletePuyoAll(self, targetLinkCount):
+        """連結しているぷよがあれば消す
+            引数で与えられた数以上の
+            連結があるぷよが1つでもあれば削除する
+            1か所でも削除すればTrueを返す"""
+        result = False
+        searchField = [x[:] for x in self.field]
+        for i in range(FIELD_COL):
+            for j in range(FIELD_ROW):
+                #壁でも空でもない場合(=ぷよ).
+                if not(searchField[j][i] == 0 or searchField[j][i] == -1):
+                    count = self.getLinkingCount(searchField, j, i)
+                    if targetLinkCount <= count:
+                        self.deletePuyo(j, i)
+                        result = True
+        return result
+    def getLinkingCount(self, field, j, i):
+        """連結数を返す
+            引数で与えられたところからつながる部分をカウントする"""
+        nowLinkCount = 1
+        color = field[j][i].getColor()
+        #もう一度捜査しないように0を入れておく.
+        field[j][i] = 0
+        # 上下左右を捜査.
+        for next_rotation in range(4):
+            element = field[j+MOMENTS[next_rotation][0]][i+MOMENTS[next_rotation][1]]
+            # 壁でも空でもない場合(=ぷよ).
+            if not(element == 0 or element == -1):
+                # 同じ色か?
+                if element.getColor() == color:
+                    nowLinkCount += self.getLinkingCount(field, j+MOMENTS[next_rotation][0], i+MOMENTS[next_rotation][1])
+        return nowLinkCount
+    def deletePuyo(self, j, i):
+        color = self.field[j][i].getColor()
+        puyo = self.field[j][i]
+        puyo.kill()
+        self.field[j][i] = 0
+        # 上下左右を捜査.
+        for next_rotation in range(4):
+            element = self.field[j+MOMENTS[next_rotation][0]][i+MOMENTS[next_rotation][1]]
+            # 壁でも空でもない場合(=ぷよ).
+            if not(element == 0 or element == -1):
+                # 同じ色か?
+                if element.getColor() == color:
+                    self.deletePuyo(j+MOMENTS[next_rotation][0], i+MOMENTS[next_rotation][1])
 class PuyoOperator():
     FIX_TIME = 10
     def __init__(self, field):
@@ -174,7 +224,6 @@ class PuyoOperator():
             else:
                 self.fix_time += self.FIX_TIME
     def spin(self, direction):
-        moments = [[0, -1], [1, 0], [0, 1], [-1, 0]]
         next_rotation = self.rotation
         if direction == RIGHT:
             if self.rotation == 3:
@@ -188,8 +237,8 @@ class PuyoOperator():
                 next_rotation = self.rotation - 1
         else:
             return
-        if self.isMoveable(self.x+moments[next_rotation][0], self.y+moments[next_rotation][1]):
-            self.earth.setPosition(self.x+moments[next_rotation][0], self.y+moments[next_rotation][1])
+        if self.isMoveable(self.x+MOMENTS[next_rotation][0], self.y+MOMENTS[next_rotation][1]):
+            self.earth.setPosition(self.x+MOMENTS[next_rotation][0], self.y+MOMENTS[next_rotation][1])
             self.rotation = next_rotation
     def isMoveable(self, x, y):
         if self.field.getElement(x, y) == 0:
@@ -198,12 +247,13 @@ class PuyoOperator():
     def fixPuyo(self):
         self.field.addPuyo(self.sun)
         self.field.addPuyo(self.earth)
-        # TODO 本来なら違うが、今は位置が確定したら次のぷよを作る.
+        self.field.startChain()
         self.makePuyo()
 class Puyo(pygame.sprite.Sprite):
     def __init__(self, x, y, color, state):
         pygame.sprite.Sprite.__init__(self, self.containers)
         self.state = state
+        self.color = color
         self.image = self.images[color]
         self.rect = self.image.get_rect()
         self.rect.left = x * CELL_SIZE
@@ -220,5 +270,7 @@ class Puyo(pygame.sprite.Sprite):
         return (self.rect.left // CELL_SIZE), (self.rect.top // CELL_SIZE)
     def setState(self, state):
         self.state = state
+    def getColor(self):
+        return self.color
 if __name__ == "__main__":
     Puyopuyo()
