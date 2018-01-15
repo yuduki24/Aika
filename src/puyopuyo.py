@@ -4,7 +4,7 @@ from loader import load_image, split_image
 import sys
 import random
 
-SCR_RECT = Rect(0, 0, 768, 576)
+SCR_RECT = Rect(0, 0, 768, 608)
 CELL_SIZE = 32
 WINDOW_ROW = SCR_RECT.height // CELL_SIZE
 WINDOW_COL = SCR_RECT.width // CELL_SIZE
@@ -112,10 +112,20 @@ class Field(pygame.sprite.Sprite):
             return
         self.field[y+n][x] = self.field[y][x]
         self.field[y][x] = 0
-    def getApparitionPosition(self):
+    def getPuyoApparitionPosition(self):
         """ぷよ出現位置を返す"""
         # xはfieldの中心、yは上から3番目の位置.
         return (self.x + FIELD_COL // 2 - 1), (self.y + 2)
+    def getNextPuyoApparitionPosition(self):
+        """ネクストぷよ出現位置を返す"""
+        # xはPlayer1ならfieldの右側、Player2ならfieldの左側.
+        # yは上から4番目の位置.
+        return (self.x + FIELD_COL), (self.y + 4)
+    def getNextNextPuyoApparitionPosition(self):
+        """ネクネクぷよ出現位置を返す"""
+        # xはPlayer1ならfieldの右側、Player2ならfieldの左側.
+        # yは上から6番目の位置.
+        return (self.x + FIELD_COL + 1), (self.y + 6)
     def getElement(self, x, y):
         return self.field[y-self.y][x-self.x]
     def addPuyo(self, puyo):
@@ -176,14 +186,24 @@ class PuyoOperator():
     FIX_TIME = 10
     def __init__(self, field):
         self.field = field
+        x, y = self.field.getNextPuyoApparitionPosition()
+        self.nextSun = Puyo(x, y, random.randint(0,3), SUN)
+        self.nextEarth = Puyo(x, y-1, random.randint(0,3), EARTH)
+        x, y = self.field.getNextNextPuyoApparitionPosition()
+        self.nextNextSun = Puyo(x, y, random.randint(0,3), SUN)
+        self.nextNextEarth = Puyo(x, y-1, random.randint(0,3), EARTH)
     def makePuyo(self):
         """ぷよを生成"""
         # 回転ぷよは軸ぷよの上側に生成.
-        self.x, self.y = self.field.getApparitionPosition()
+        self.x, self.y = self.field.getPuyoApparitionPosition()
         self.fix_time = 0
         self.rotation = UPPER
-        self.sun = Puyo(self.x, self.y, random.randint(0,4), SUN)
-        self.earth = Puyo(self.x, self.y-1, random.randint(0,4), EARTH)
+        self.sun = Puyo(self.x, self.y, self.nextSun.getColor(), SUN)
+        self.earth = Puyo(self.x, self.y-1, self.nextEarth.getColor(), EARTH)
+        self.nextSun.setColor(self.nextNextSun.getColor())
+        self.nextEarth.setColor(self.nextNextEarth.getColor())
+        self.nextNextSun.setColor(random.randint(0,4))
+        self.nextNextEarth.setColor(random.randint(0,4))
     def update(self):
         for event in pygame.event.get():
             if event.type == KEYDOWN:  # キーを押したとき
@@ -272,5 +292,8 @@ class Puyo(pygame.sprite.Sprite):
         self.state = state
     def getColor(self):
         return self.color
+    def setColor(self, color):
+        self.color = color
+        self.image = self.images[color]
 if __name__ == "__main__":
     Puyopuyo()
